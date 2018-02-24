@@ -4,6 +4,7 @@
   /*
   TODO:
   1. Add method refresh() that will refresh list's data after deletion or some other action (e.g. get new data from server and display it)
+  2. Add IntersectionObserver on each listItem element in order to observe when listItem is enterd/exited visible area of the list
   */
   
     
