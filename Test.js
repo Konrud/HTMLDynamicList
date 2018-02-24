@@ -63,11 +63,11 @@
   
   function buttonUpOnClick () {
     list.scrollBackwards();
-  }
+  };
   
   function buttonDownOnClick () {
     list.scrollForwards();
-  }
+  };
   
   /*  Utilities
   ==============================*/
