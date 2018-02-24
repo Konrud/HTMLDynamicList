@@ -62,17 +62,13 @@
   };
   
   
-//   function listOnRefreshUI (listItemsData) {
-    
-//   };
-  
   function buttonUpOnClick () {
     list.scrollBackwards();
-  }
+  };
   
   function buttonDownOnClick () {
     list.scrollForwards();
-  }
+  };
   
   /*  Utilities
   ==============================*/
