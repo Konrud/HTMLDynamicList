@@ -1,0 +1,97 @@
+HTML {
+  /*using system font-stack*/
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-size: 115%; /*~18px*/
+  /*using fluid typography (https://goo.gl/o9sRyq)*/
+  font-size: calc(16px + (20 - 16) * (100vw - 300px) / (1300 - 300) );
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+BODY {
+  color: #3a3d40;
+  margin: 0;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+  color: inherit;
+}
+
+/*Actual Style*/
+.c-main-container {
+  margin: 5rem auto;
+}
+
+.c-list-wrapper {
+  max-height: 230px;
+  border: 1px solid;
+  text-align: center;
+  overflow: hidden;
+}
+
+.o-list {
+  padding: 0; 
+  margin: 0;
+  list-style: none;
+  overflow: hidden;
+}
+
+
+.c-main-container__list {
+/*   max-height: 239px; */
+  max-width: 500px;
+  margin: 0 auto;
+  transition: transform .3s ease-out;
+/*   border: 5px solid rgb(42, 106, 165); */
+}
+
+
+.o-list__item {
+  padding: 1rem 1.5rem;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, .12);
+}
+
+.c-main-container__list-item {
+  margin-bottom: 0.2rem;
+  background: rgb(73, 12, 83);
+}
+
+[data-selected=true] {
+  position: relative;
+}
+
+[data-selected=true]::before {
+  content: "(Selected)";
+  position: absolute;
+  right: 0; top: 0;
+  color: #f1f1f1;
+}
+
+.o-list__item[data-selected=true] {
+  background: rgb(100, 134, 194);
+}
+
+.o-list__text {
+  margin: 0;
+  margin-bottom: 0.2rem;
+}
+
+.c-main-container__list-text {
+  color: #f1f1f1;
+}
+
+.o-list__button {
+  padding: 0.7rem 1rem;
+  border: 1px solid;
+  border-radius: 0.1rem;
+  color: #f1f1f1;
+  background: transparent;
+}
+
+.c-main-container__list-button {
+  background: cornflowerblue;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .2);
+}
+
+
