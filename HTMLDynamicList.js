@@ -145,7 +145,7 @@
         selectedItem.isSelected = true;
         
         if(selectedItem.isVisible === false) {
-          defOpts.listHTMLElement.style.transform = "translateY(" + defOpts.listItemHeightOffset + ")";
+          defOpts.listHTMLElement.style.transform = "translateY(" + defOpts.listItemHeightOffset + "px)";
           selectedItem.isVisible = true;
         }
         
