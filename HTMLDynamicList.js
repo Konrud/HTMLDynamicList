@@ -78,8 +78,6 @@
     /*=======================================*/
     
     function scrollForwards (defOpts) {
-         /// defOpts.listItemsData;
-        ///  defOpts.dataObjects;
       
       let selectedIndex = defOpts.listItemsData.findIndex(function (item) {
         return item.isSelected === true;
@@ -99,7 +97,6 @@
             if(selectedIndex >= defOpts.dataObjects.length) {
               selectedIndex = defOpts.dataObjects.length - 1;
             }  else { /// load new items
-              ///defOpts.dataObjects[selectedIndex];
             }
          }
         // new/next item to be selected
@@ -115,7 +112,6 @@
         }
         
         defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
-        // defOpts.onRefreshUI(defOpts.listItemsData);
       }
       
     };
@@ -142,7 +138,6 @@
             if(selectedIndex < 0) {
                selectedIndex = 0;
             }  else { /// load new items
-              ///defOpts.dataObjects[selectedIndex];
             }
          }
         
@@ -155,7 +150,6 @@
         }
         
         defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
-        // defOpts.onRefreshUI(defOpts.listItemsData);
       }
     };
   
@@ -195,10 +189,6 @@
       /// add additional classes defined by the user
       listHTMLElement.classList.add.apply(listHTMLElement.classList, listOpts.listClasses);
       
-      // listOpts.listClasses.forEach(function (listClass) {
-      //   listHTMLElement.classList.add(listClass);  
-      // });
-      
       const tempHTMLDocFrag = document.createDocumentFragment();
       
       for(let i = listOpts.firstIndex; i < endIndex; i++) {
@@ -208,11 +198,7 @@
            const listItemData = {
               data: dataObj,
               index: i,
-              /*isVisible: true/false*/
               isVisible: false,
-             /* visibleIndex: 0/undefined */ /*? how we will determine visible index*/
-              /*?*/
-             /*isSelected: true/false*/
               isSelected: listOpts.selectedIndex === i
             };
 
@@ -223,9 +209,6 @@
               listItemData.isVisible = true;
               listItemData.visibleIndex = list.visibleItems.length;
               list.visibleItems.push(listItemData);
-                
-              ////list.visibleItems.push(); ?
-              //// LIST_ITEM_VISIBLE_INDEX_ATTR  ?
             };
               
           const listItem = document.createElement(listOpts.listItemTag);
@@ -234,11 +217,6 @@
 
           /// add additional classes defined by the user
           listItem.classList.add.apply(listItem.classList, listOpts.listItemClasses);
-        
-
-          // listOpts.listItemClasses.forEach(function (listClass) {
-          //   listItem.classList.add(listClass);  
-          // });
 
           listItem.setAttribute(LIST_ITEM_VISIBLE_ATTR, listItemData.isVisible);
           listItem.setAttribute(LIST_ITEM_SELECTED_ATTR, listItemData.isSelected);
@@ -252,16 +230,12 @@
           listItem.innerHTML = templateStr || "";
             
           tempHTMLDocFrag.appendChild(listItem);
-            // listOpts.containerElement.insertAdjacentHTML("beforeend", templateStr || "");
-          // listItemsTemplateStr += templateStr || "";
       };
       
       listHTMLElement.appendChild(tempHTMLDocFrag);
       listOpts.listWrapper.appendChild(listHTMLElement);
       
       listOpts.listHTMLElement = listHTMLElement;
-      
-      ///listOpts.listWrapper.insertAdjacentHTML("beforeend", listItemsTemplateStr || "");
     };
   
     /**
@@ -281,10 +255,6 @@
     function _isFunction (valueToCheck) {
       return typeof valueToCheck === "function";
     };
-  
-  
-    // function defaultEmptyFunction () {
-    // };
  
   
     /*----Prototype Methods----*/
