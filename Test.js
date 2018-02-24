@@ -61,11 +61,6 @@
     debugger;
   };
   
-  
-//   function listOnRefreshUI (listItemsData) {
-    
-//   };
-  
   function buttonUpOnClick () {
     list.scrollBackwards();
   }
@@ -76,8 +71,7 @@
   
   /*  Utilities
   ==============================*/
-  
-  
+   
     /*
     * Gets compiled template with inserted data.
     * @param {Object} dataObj - Object with data to set the template from
@@ -89,9 +83,6 @@
         var handlebarsProjectTemplate = Handlebars.compile(templateElem.innerText)(dataObj);
         return handlebarsProjectTemplate;
     };
-  
-  
-  
   
   
     function getListItemsData () {
