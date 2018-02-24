@@ -1,38 +1,43 @@
-<main class="c-main-container">
-  <section id="listWrapper" class="c-list-wrapper">
-<!--<ul id="list" class="o-list c-main-container__list">-->
-<!--</ul>-->   
-  <!-- List and List Items will be added dynamically via JS -->
-  </section>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Dynamic List</title>
+
+    <link href="Style.css" rel="stylesheet" />
+</head>
+<body>
+
+  <main class="c-main-container">
+    <section id="listWrapper" class="c-list-wrapper">
+      <!--<ul id="list" class="o-list c-main-container__list">-->
+      <!--</ul>-->
+      <!-- List and List Items will be added dynamically via JS -->
+    </section>
+
+    <section class="c-btns-container">
+      <button type="button" id="btn-up" class="o-btn c-btns-container__btn">Move Up</button>
+      <button type="button" id="btn-down" class="o-btn c-btns-container__btn">Move Down</button>
+    </section>
+
+  </main>
+
   
-  <section class="c-btns-container">
-    <button type="button" id="btn-up" class="o-btn c-btns-container__btn">Move Up</button>
-    <button type="button" id="btn-down" class="o-btn c-btns-container__btn">Move Down</button>
-  </section>
+  <script id="list-item-template" type="text/x-handlebars-template">
+              <p class="o-list__text c-main-container__list-text">{{textValue}}</p>
+              <button type="button" class="o-list__button c-main-container__list-button">{{buttonLabel}}</button>
+  </script>
   
-</main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.11/handlebars.js"></script>
+  
+  <script src="HTMLDynamicList.js"></script>
 
-
-<script id="list-item-template" type="text/x-handlebars-template">
-            <p class="o-list__text c-main-container__list-text">{{textValue}}</p>
-            <button type="button" class="o-list__button c-main-container__list-button">{{buttonLabel}}</button>
-</script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  <script src="Test.js"></script>
+  
+    
+</body>
+</html>
 
 
 
