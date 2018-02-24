@@ -86,7 +86,7 @@
       });
       
       if(selectedIndex > -1) {
-               
+         
          let selectedItem = defOpts.listItemsData[selectedIndex];
 
          selectedItem.isSelected = false; // previous selected item is not selected anymore
@@ -102,13 +102,16 @@
               ///defOpts.dataObjects[selectedIndex];
             }
          }
-        
+        // new/next item to be selected
         selectedItem = defOpts.listItemsData[selectedIndex];
         selectedItem.isSelected = true;
         
         if(selectedItem.isVisible === false) {
-          defOpts.listHTMLElement.style.transform = "translateY(-" + defOpts.listItemHeightOffset + ")";
-          selectedItem.isVisible = true;
+          defOpts.listHTMLElement.style.transform = "translateY(-" + defOpts.listItemHeightOffset + "px)";
+          
+          selectedItem.isVisible = true;         
+        
+          defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_VISIBLE_ATTR, selectedItem.isVisible);
         }
         
         defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
