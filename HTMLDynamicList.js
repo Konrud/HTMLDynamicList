@@ -56,7 +56,7 @@ loadPolyfills ();
     Object.defineProperty(this, "firstIndex", { get: function () { return defOpts.firstIndex; } });
     
     defOpts.onBeforeDisplay(defOpts.dataObjects); // the last chance to change provided data before rendering
-    _displayItems(this, defOpts);    
+    _renderListItems(this, defOpts);   
     defOpts.onAfterDisplay([].concat(defOpts.listItemsData)); // passed in all data for rendered list items
     
       if(defOpts.listHTMLElement) {
@@ -99,6 +99,7 @@ loadPolyfills ();
             if(selectedIndex >= defOpts.dataObjects.length) {
               selectedIndex = defOpts.dataObjects.length - 1;
             }  else { /// load new items
+              ///defOpts.dataObjects[selectedIndex];
             }
          }
         // new/next item to be selected
@@ -114,18 +115,18 @@ loadPolyfills ();
         }
         
         defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
+        // defOpts.onRefreshUI(defOpts.listItemsData);
       }
       
     };
-  
+   
   
     function scrollBackwards (defOpts) {
       
       let selectedIndex = defOpts.listItemsData.findIndex(function (item) {
         return item.isSelected === true;
       });
-      
-      
+       
       if(selectedIndex > -1) {
         
         let selectedItem = defOpts.listItemsData[selectedIndex];
@@ -140,18 +141,21 @@ loadPolyfills ();
             if(selectedIndex < 0) {
                selectedIndex = 0;
             }  else { /// load new items
+              ///defOpts.dataObjects[selectedIndex];
             }
          }
-        
+       
         selectedItem = defOpts.listItemsData[selectedIndex];
         selectedItem.isSelected = true;
-        
+        debugger;
         if(selectedItem.isVisible === false) {
+          debugger;
           defOpts.listHTMLElement.style.transform = "translateY(" + defOpts.listItemHeightOffset + "px)";
           selectedItem.isVisible = true;
         }
         
         defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
+        // defOpts.onRefreshUI(defOpts.listItemsData);
       }
     };
   
@@ -168,13 +172,12 @@ loadPolyfills ();
     /*=======================================*/
   
   
-    function _displayItems (list, defOpts) {
+    function _renderListItems (list, defOpts) {
       const listOpts = defOpts;
       
       if(_isFunction(listOpts.onDisplay) === false) {
         throw new Error("List Error: function for onDisplay event is not provided.");
-      };
-      
+      };      
       
       const renderedItemsAmount = (listOpts.numberOfVisibleItems + 1 + 2); /*+ 1 == acount for zero base index | + 2 number of invisible but preloaded items that will reside below the visible items*/ 
       
@@ -184,8 +187,7 @@ loadPolyfills ();
       
       let listItemsTemplateStr = ""; // accumulate all list items string templates to one
       
-      const listHTMLElement = document.createElement(listOpts.listTag);
-      
+      const listHTMLElement = document.createElement(listOpts.listTag);      
       listHTMLElement.className = LIST_IDENTITY_CLASS;
        
       /// add additional classes defined by the user
@@ -194,50 +196,82 @@ loadPolyfills ();
       const tempHTMLDocFrag = document.createDocumentFragment();
       
       for(let i = listOpts.firstIndex; i < endIndex; i++) {
-          const dataObj = listOpts.dataObjects[i];
-         
-         
-           const listItemData = {
-              data: dataObj,
-              index: i,
-              isVisible: false,
-              isSelected: listOpts.selectedIndex === i
-            };
+         const dataObj = listOpts.dataObjects[i];    
+                
+         const listItemData = _renderListItem(dataObj, i, listOpts);
 
-        
-            defOpts.listItemsData.push(listItemData);
-        
-            if(visibleItemsAmount-- > 0) {
-              listItemData.isVisible = true;
-              listItemData.visibleIndex = list.visibleItems.length;
-              list.visibleItems.push(listItemData);
-            };
-              
-          const listItem = document.createElement(listOpts.listItemTag);
-         
-          listItem.className = LIST_ITEM_IDENTITY_CLASS;
-
-          /// add additional classes defined by the user
-          listItem.classList.add.apply(listItem.classList, listOpts.listItemClasses);
-
-          listItem.setAttribute(LIST_ITEM_VISIBLE_ATTR, listItemData.isVisible);
-          listItem.setAttribute(LIST_ITEM_SELECTED_ATTR, listItemData.isSelected);
-          listItem.setAttribute(LIST_ITEM_INDEX_ATTR, listItemData.index);
-        
-          if(listItemData.visibleIndex != undefined) // visibleIndex can be 0
-          listItem.setAttribute(LIST_ITEM_VISIBLE_INDEX_ATTR, listItemData.visibleIndex);
-        
-          const templateStr = listOpts.onDisplay(listItemData);
-
-          listItem.innerHTML = templateStr || "";
+         if(visibleItemsAmount-- > 0) {      
+            toggleListItemVisibility(list, listItemData, true);
+         };
             
-          tempHTMLDocFrag.appendChild(listItem);
+         tempHTMLDocFrag.appendChild(listItemData.listItemHTML);
       };
       
       listHTMLElement.appendChild(tempHTMLDocFrag);
       listOpts.listWrapper.appendChild(listHTMLElement);
       
       listOpts.listHTMLElement = listHTMLElement;
+    };
+  
+  
+    function _renderListItem (dataObj, index, defOpts) {
+      
+         const listItemData = {
+            data: dataObj,
+            index: index, // index from overall data items array
+            isVisible: false,
+            isSelected: defOpts.selectedIndex === index, 
+         };
+        
+         defOpts.listItemsData.push(listItemData);
+
+         const listItem = _createListItemElement(defOpts.listItemTag, LIST_ITEM_IDENTITY_CLASS, listItemData);
+      
+         /// add additional classes defined by the user
+         listItem.classList.add.apply(listItem.classList, defOpts.listItemClasses);
+      
+         const templateStr = defOpts.onDisplay(listItemData);
+
+         listItem.innerHTML = templateStr || "";
+      
+         listItemData.listItemHTML = listItem;
+      
+         return listItemData;
+    };
+  
+  
+    function _createListItemElement (listItemTag, listItemClass, listItemData) {      
+         const listItem = document.createElement(listItemTag);
+         
+         listItem.className = listItemClass;
+
+         listItem.setAttribute(LIST_ITEM_VISIBLE_ATTR, listItemData.isVisible);
+         listItem.setAttribute(LIST_ITEM_SELECTED_ATTR, listItemData.isSelected);
+         listItem.setAttribute(LIST_ITEM_INDEX_ATTR, listItemData.index);
+
+         return listItem;
+    };
+  
+  
+    function toggleListItemVisibility (list, listItemData, isVisible) {
+        listItemData.isVisible = isVisible;
+        const listItemHTML = listItemData.listItemHTML;
+      
+        if(isVisible) {
+          
+         listItemData.visibleIndex = list.visibleItems.length;
+         list.visibleItems.push(listItemData);   
+          
+         if(listItemData.visibleIndex != undefined) // visibleIndex can be 0
+          listItemHTML.setAttribute(LIST_ITEM_VISIBLE_INDEX_ATTR, listItemData.visibleIndex);
+          
+        } else {
+          list.visibleItems.splice(listItemData.visibleIndex, 1);
+          delete listItemData.visibleIndex;
+          listItemHTML.removeAttribute(LIST_ITEM_VISIBLE_INDEX_ATTR);
+        }
+        
+        listItemHTML.setAttribute(LIST_ITEM_VISIBLE_ATTR, listItemData.isVisible);
     };
   
     /**
