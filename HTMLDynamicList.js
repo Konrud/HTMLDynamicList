@@ -48,12 +48,24 @@ loadPolyfills ();
     
     if(_isObject(options))
       Object.assign(defOpts, options);
+ 
+        
+    const intersectionObserverOptions = {
+      root: defOpts.listWrapper,
+      rootMargin: "0px 0px 0px"
+    };
+    
+    defOpts.intersectionObserver = new IntersectionObserver(_handleListItemsIntersection, intersectionObserverOptions);
     
     /// array of visually visible items of the list (depends on @numberOfVisibleItems property)
     this.visibleItems = [];
     
     Object.defineProperty(this, "selectedIndex", { get: function () { return defOpts.firstIndex; } });
     Object.defineProperty(this, "firstIndex", { get: function () { return defOpts.firstIndex; } });
+    
+    getListItemData = getListItemData.bind(this, defOpts);
+    getCurrentSelectedItem = getCurrentSelectedItem.bind(this, defOpts);
+    _toggleListItemVisibility = _toggleListItemVisibility.bind(this);
     
     defOpts.onBeforeDisplay(defOpts.dataObjects); // the last chance to change provided data before rendering
     _renderListItems(this, defOpts);   
@@ -74,27 +86,25 @@ loadPolyfills ();
                 EVENT HANDLERS
     /*=======================================*/
   
-  
+ 
     /*=======================================*\
                 PUBLIC METHODS
     /*=======================================*/
     
     function scrollForwards (defOpts) {
+      debugger;
+      let currentSelectedItem = getCurrentSelectedItem();
       
-      let selectedIndex = defOpts.listItemsData.findIndex(function (item) {
-        return item.isSelected === true;
-      });
+      let selectedIndex = currentSelectedItem ? currentSelectedItem.index : -1;
       
       if(selectedIndex > -1) {
-         
-         let selectedItem = defOpts.listItemsData[selectedIndex];
-
-         selectedItem.isSelected = false; // previous selected item is not selected anymore
+ 
+         currentSelectedItem.isSelected = false; // previous selected item is not selected anymore
       
-         defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
+         currentSelectedItem.listItemHTML.setAttribute(LIST_ITEM_SELECTED_ATTR, currentSelectedItem.isSelected);
         
          selectedIndex += 1;
-         
+          
          if(selectedIndex >= defOpts.listItemsData.length) {
             if(selectedIndex >= defOpts.dataObjects.length) {
               selectedIndex = defOpts.dataObjects.length - 1;
@@ -103,18 +113,16 @@ loadPolyfills ();
             }
          }
         // new/next item to be selected
-        selectedItem = defOpts.listItemsData[selectedIndex];
-        selectedItem.isSelected = true;
+        currentSelectedItem = defOpts.listItemsData[selectedIndex];
+        debugger;
+        currentSelectedItem.isSelected = true;
         
-        if(selectedItem.isVisible === false) {
-          defOpts.listHTMLElement.style.transform = "translateY(-" + defOpts.listItemHeightOffset + "px)";
-          
-          selectedItem.isVisible = true;         
-        
-          defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_VISIBLE_ATTR, selectedItem.isVisible);
+        if(currentSelectedItem.isVisible === false) {
+          defOpts.listHTMLElement.style.transform = "translateY(-" + defOpts.listItemHeightOffset + "px)";                
+          // defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_VISIBLE_ATTR, selectedItem.isVisible);
         }
-        
-        defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
+        /*TODO: maybe we should define setSelectedItem method?*/
+        currentSelectedItem.listItemHTML.setAttribute(LIST_ITEM_SELECTED_ATTR, currentSelectedItem.isSelected);
         // defOpts.onRefreshUI(defOpts.listItemsData);
       }
       
@@ -122,18 +130,16 @@ loadPolyfills ();
    
   
     function scrollBackwards (defOpts) {
+
+      let currentSelectedItem = getCurrentSelectedItem();
       
-      let selectedIndex = defOpts.listItemsData.findIndex(function (item) {
-        return item.isSelected === true;
-      });
+      let selectedIndex = currentSelectedItem ? currentSelectedItem.index : -1;
        
       if(selectedIndex > -1) {
-        
-        let selectedItem = defOpts.listItemsData[selectedIndex];
 
-        selectedItem.isSelected = false; // previous selected item is not selected anymore
+        currentSelectedItem.isSelected = false; // previous selected item is not selected anymore
       
-        defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
+        currentSelectedItem.listItemHTML.setAttribute(LIST_ITEM_SELECTED_ATTR, currentSelectedItem.isSelected);
         
          selectedIndex -= 1;
          
@@ -145,28 +151,41 @@ loadPolyfills ();
             }
          }
        
-        selectedItem = defOpts.listItemsData[selectedIndex];
-        selectedItem.isSelected = true;
+        currentSelectedItem = defOpts.listItemsData[selectedIndex];
+        currentSelectedItem.isSelected = true;
         debugger;
-        if(selectedItem.isVisible === false) {
-          debugger;
+        if(currentSelectedItem.isVisible === false) {
           defOpts.listHTMLElement.style.transform = "translateY(" + defOpts.listItemHeightOffset + "px)";
-          selectedItem.isVisible = true;
         }
         
-        defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_SELECTED_ATTR, selectedItem.isSelected);
+        currentSelectedItem.listItemHTML.setAttribute(LIST_ITEM_SELECTED_ATTR, currentSelectedItem.isSelected);
         // defOpts.onRefreshUI(defOpts.listItemsData);
       }
     };
-  
   
   
     function scrollTo (index) {
       
     };
   
+      
+    function getListItemData (defOpts, index) {
+      index = parseInt(index);
+      const foundListItem = defOpts.listItemsData.find(function (elem) {
+        return elem.index === index;
+      });
+      return foundListItem;
+    };
   
   
+    function getCurrentSelectedItem (defOpts) {
+      let selectedItem = defOpts.listItemsData.find(function (item) {
+        return item.isSelected === true;
+      });
+      return selectedItem;
+    };
+  
+   
     /*=======================================*\
                 PRIVATE FUNCTIONS
     /*=======================================*/
@@ -195,13 +214,15 @@ loadPolyfills ();
       
       const tempHTMLDocFrag = document.createDocumentFragment();
       
-      for(let i = listOpts.firstIndex; i < endIndex; i++) {
+      for(let i = listOpts.firstIndex, j = 0; i < endIndex; i++, j++) {
          const dataObj = listOpts.dataObjects[i];    
                 
-         const listItemData = _renderListItem(dataObj, i, listOpts);
+         const listItemData = _renderListItem(dataObj, j, listOpts);
+        
+         listItemData.dataIndex = i;
 
          if(visibleItemsAmount-- > 0) {      
-            toggleListItemVisibility(list, listItemData, true);
+            _toggleListItemVisibility(listItemData, true);
          };
             
          tempHTMLDocFrag.appendChild(listItemData.listItemHTML);
@@ -236,6 +257,8 @@ loadPolyfills ();
       
          listItemData.listItemHTML = listItem;
       
+         defOpts.intersectionObserver.observe(listItem);
+      
          return listItemData;
     };
   
@@ -253,7 +276,8 @@ loadPolyfills ();
     };
   
   
-    function toggleListItemVisibility (list, listItemData, isVisible) {
+    function _toggleListItemVisibility (listItemData, isVisible) {
+        const list = this; 
         listItemData.isVisible = isVisible;
         const listItemHTML = listItemData.listItemHTML;
       
@@ -264,7 +288,7 @@ loadPolyfills ();
           
          if(listItemData.visibleIndex != undefined) // visibleIndex can be 0
           listItemHTML.setAttribute(LIST_ITEM_VISIBLE_INDEX_ATTR, listItemData.visibleIndex);
-          
+           
         } else {
           list.visibleItems.splice(listItemData.visibleIndex, 1);
           delete listItemData.visibleIndex;
@@ -272,6 +296,34 @@ loadPolyfills ();
         }
         
         listItemHTML.setAttribute(LIST_ITEM_VISIBLE_ATTR, listItemData.isVisible);
+    };
+  
+    function _handleListItemsIntersection (entries, observerObj) {
+      entries.forEach(function(entry, i) {
+        /*TODO: 
+        1. Determine when element is gone above the list's upper bound and when it's gone below the list's bottom bound.
+        2. Determine when there is more than 2 listItems above the list's upper bound, the third one should be deleted.
+        3. Determine when there is only 1 listItem below the list's bottom bound, the next list item should be loaded and appended to the list
+        4. Check whether we can/should use rootMargin property of the IntersectionObserver.
+        */
+        const currentListItem = entry.target;
+        if(entry.isIntersecting) {
+          debugger;
+          if(0 < entry.intersectionRatio && entry.intersectionRatio < 1.0) {
+            const listItemIndex = currentListItem.getAttribute("data-index");
+            const listItemData = getListItemData(listItemIndex);
+            _toggleListItemVisibility(listItemData, true);
+          }
+        } else {
+          debugger;
+          const listItemIndex = currentListItem.getAttribute("data-index");
+          const listItemData = getListItemData(listItemIndex);
+          _toggleListItemVisibility(listItemData, false);
+        }  
+
+          
+        ///observerObj.unobserve(img); /// instructs the IntersectionObserver to stop observing the specified target element
+      });
     };
   
     /**
