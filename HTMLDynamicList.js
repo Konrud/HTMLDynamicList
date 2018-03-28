@@ -2,11 +2,10 @@ loadPolyfills ();
 ;(function (ns) {
   "use strict";
 
-  /*
+ /*
   TODO:
   1. Add method refresh() that will refresh list's data after deletion or some other action (e.g. get new data from server and display it)
-  2. Add IntersectionObserver on each listItem element in order to observe when listItem is enterd/exited visible area of the list
-  */
+ */
   
     
   /*=======================================*\
@@ -18,6 +17,9 @@ loadPolyfills ();
   const LIST_ITEM_INDEX_ATTR = "data-index";
   const LIST_ITEM_VISIBLE_INDEX_ATTR = "data-visible-index";
   const LIST_ITEM_SELECTED_ATTR = "data-selected";
+  
+  const LIST_MOVE_DIRECTION_FORWARDS = "forwards";
+  const LIST_MOVE_DIRECTION_BACKWARDS = "backwards";
 
 
   function List (options) {
@@ -29,6 +31,8 @@ loadPolyfills ();
       listItemTag: "li",
       listClasses: [], // each class should be set as a new array item (e.g. ["first-class", "second-class"])
       listItemClasses: [], // each class should be set as a new array item (e.g. ["first-class", "second-class"])
+      listMoveAxle: "y", // direction in which list should be offset (allowed values are: "x" - for horizontal direction, "y" for vertical direction [default value])
+      listMoveDirection: LIST_MOVE_DIRECTION_FORWARDS, // list's movement direction (allowed values are: "forward" / "backwards" doesn't depend on listMoveAxle value)
       dataObjects: [], // array of data for each list item (e.g. title, text, etc....)
       firstIndex: 0, // index in the @dataObjects from which list will start rendering
       selectedIndex: 0, // index of the item, from the visible items array, which should be denoted as selected
@@ -49,13 +53,13 @@ loadPolyfills ();
     if(_isObject(options))
       Object.assign(defOpts, options);
  
-        
+    
     const intersectionObserverOptions = {
       root: defOpts.listWrapper,
       rootMargin: "0px 0px 0px"
     };
     
-    defOpts.intersectionObserver = new IntersectionObserver(_handleListItemsIntersection, intersectionObserverOptions);
+    defOpts.intersectionObserver = new IntersectionObserver(_handleListItemsIntersection.bind(defOpts), intersectionObserverOptions);
     
     /// array of visually visible items of the list (depends on @numberOfVisibleItems property)
     this.visibleItems = [];
@@ -66,21 +70,30 @@ loadPolyfills ();
     getListItemData = getListItemData.bind(this, defOpts);
     getCurrentSelectedItem = getCurrentSelectedItem.bind(this, defOpts);
     _toggleListItemVisibility = _toggleListItemVisibility.bind(this);
+    _getListItemDimension = _getListItemDimension.bind(this, defOpts);
+    _moveList = _moveList.bind(defOpts);
+    _getListOffset = _getListOffset.bind(defOpts);
+    _toggleListMoveDirection = _toggleListMoveDirection.bind(defOpts);
+    
+    removeListItem = removeListItem.bind(defOpts);
+    
+    List.prototype.scrollForwards = scrollForwards.bind(this, defOpts);
+    List.prototype.scrollBackwards = scrollBackwards.bind(this, defOpts);
+    List.prototype.getListMoveAxle = getListMoveAxle.bind(this, defOpts);
     
     defOpts.onBeforeDisplay(defOpts.dataObjects); // the last chance to change provided data before rendering
     _renderListItems(this, defOpts);   
     defOpts.onAfterDisplay([].concat(defOpts.listItemsData)); // passed in all data for rendered list items
+    debugger; 
+    defOpts.listMoveAxle = this.getListMoveAxle();
     
-      if(defOpts.listHTMLElement) {
-        const listItemElem = defOpts.listHTMLElement.firstElementChild;
-        const listItemStyle = window.getComputedStyle(listItemElem);
-        defOpts.listItemHeightOffset = listItemElem.offsetHeight + parseFloat(listItemStyle.marginTop) + parseFloat(listItemStyle.marginBottom);
-      };
+    if(defOpts.listHTMLElement) {
+      defOpts.listItemDimension = _getListItemDimension();
+      defOpts.listOffsetDimension = defOpts.listItemDimension;
+    };
     
-    List.prototype.scrollForwards = scrollForwards.bind(this, defOpts);
-    List.prototype.scrollBackwards = scrollBackwards.bind(this, defOpts);
   };
-
+  
   
     /*=======================================*\
                 EVENT HANDLERS
@@ -98,27 +111,37 @@ loadPolyfills ();
       let selectedIndex = currentSelectedItem ? currentSelectedItem.index : -1;
       
       if(selectedIndex > -1) {
- 
+         
+         selectedIndex += 1;
+        
+         if(defOpts.listMoveDirection === LIST_MOVE_DIRECTION_BACKWARDS)
+            _toggleListMoveDirection();
+        
+         debugger;
+         if(selectedIndex >= defOpts.listItemsData.length) {
+            let nextListItemDataIndex = currentSelectedItem.dataIndex + 1;
+            if(nextListItemDataIndex >= defOpts.dataObjects.length) {
+              ///nextListItemDataIndex = defOpts.dataObjects.length - 1;
+              return; // do nothing, we don't need to move list any further
+            }  else { /// load new items
+              // we set selectedIndex with the last element index in the listItemsData temporary 
+              ////selectedIndex = defOpts.listItemsData.length - 1;
+              ///defOpts.dataObjects[selectedIndex];
+              _loadListItem(defOpts, nextListItemDataIndex);
+            }
+         } 
+         // reset, previous selected item's, selected state
          currentSelectedItem.isSelected = false; // previous selected item is not selected anymore
-      
          currentSelectedItem.listItemHTML.setAttribute(LIST_ITEM_SELECTED_ATTR, currentSelectedItem.isSelected);
         
-         selectedIndex += 1;
-          
-         if(selectedIndex >= defOpts.listItemsData.length) {
-            if(selectedIndex >= defOpts.dataObjects.length) {
-              selectedIndex = defOpts.dataObjects.length - 1;
-            }  else { /// load new items
-              ///defOpts.dataObjects[selectedIndex];
-            }
-         }
         // new/next item to be selected
         currentSelectedItem = defOpts.listItemsData[selectedIndex];
         debugger;
         currentSelectedItem.isSelected = true;
         
         if(currentSelectedItem.isVisible === false) {
-          defOpts.listHTMLElement.style.transform = "translateY(-" + defOpts.listItemHeightOffset + "px)";                
+          // defOpts.listHTMLElement.style.transform = "translateY(-" + defOpts.listItemOffset + "px)";   
+          _moveList((defOpts.listOffsetDimension * -1), defOpts.listMoveAxle);
           // defOpts.listHTMLElement.children[selectedIndex].setAttribute(LIST_ITEM_VISIBLE_ATTR, selectedItem.isVisible);
         }
         /*TODO: maybe we should define setSelectedItem method?*/
@@ -142,20 +165,27 @@ loadPolyfills ();
         currentSelectedItem.listItemHTML.setAttribute(LIST_ITEM_SELECTED_ATTR, currentSelectedItem.isSelected);
         
          selectedIndex -= 1;
+        
+                      
+        if(defOpts.listMoveDirection === LIST_MOVE_DIRECTION_FORWARDS)
+           _toggleListMoveDirection();
          
          if(selectedIndex < defOpts.listItemsData[0].index) {
             if(selectedIndex < 0) {
                selectedIndex = 0;
             }  else { /// load new items
-              ///defOpts.dataObjects[selectedIndex];
+              selectedIndex = 0;// temporary we set selectedIndex with the first element index in the listItemsData
+              ///defOpts.dataObjects[selectedIndex];              
+              _loadListItem(defOpts, nextListItemDataIndex);
             }
          }
-       
+        
         currentSelectedItem = defOpts.listItemsData[selectedIndex];
         currentSelectedItem.isSelected = true;
         debugger;
         if(currentSelectedItem.isVisible === false) {
-          defOpts.listHTMLElement.style.transform = "translateY(" + defOpts.listItemHeightOffset + "px)";
+          // defOpts.listHTMLElement.style.transform = "translateY(" + defOpts.listItemOffset + "px)";
+          _moveList(defOpts.listOffsetDimension, defOpts.listMoveAxle);
         }
         
         currentSelectedItem.listItemHTML.setAttribute(LIST_ITEM_SELECTED_ATTR, currentSelectedItem.isSelected);
@@ -171,6 +201,9 @@ loadPolyfills ();
       
     function getListItemData (defOpts, index) {
       index = parseInt(index);
+      
+      if(Number.isNaN(index)) return;
+      
       const foundListItem = defOpts.listItemsData.find(function (elem) {
         return elem.index === index;
       });
@@ -185,6 +218,10 @@ loadPolyfills ();
       return selectedItem;
     };
   
+    
+    function getListMoveAxle (defOpts) {
+      return defOpts.listMoveAxle.toLowerCase();
+    };
    
     /*=======================================*\
                 PRIVATE FUNCTIONS
@@ -216,9 +253,9 @@ loadPolyfills ();
       
       for(let i = listOpts.firstIndex, j = 0; i < endIndex; i++, j++) {
          const dataObj = listOpts.dataObjects[i];    
-                
+         
          const listItemData = _renderListItem(dataObj, j, listOpts);
-        
+         // item's index in the dataObjects array
          listItemData.dataIndex = i;
 
          if(visibleItemsAmount-- > 0) {      
@@ -227,7 +264,7 @@ loadPolyfills ();
             
          tempHTMLDocFrag.appendChild(listItemData.listItemHTML);
       };
-      
+       
       listHTMLElement.appendChild(tempHTMLDocFrag);
       listOpts.listWrapper.appendChild(listHTMLElement);
       
@@ -239,7 +276,7 @@ loadPolyfills ();
       
          const listItemData = {
             data: dataObj,
-            index: index, // index from overall data items array
+            index: defOpts.listItemsData.length/*index*/, // index from overall data items array
             isVisible: false,
             isSelected: defOpts.selectedIndex === index, 
          };
@@ -250,7 +287,7 @@ loadPolyfills ();
       
          /// add additional classes defined by the user
          listItem.classList.add.apply(listItem.classList, defOpts.listItemClasses);
-      
+     
          const templateStr = defOpts.onDisplay(listItemData);
 
          listItem.innerHTML = templateStr || "";
@@ -262,6 +299,23 @@ loadPolyfills ();
          return listItemData;
     };
   
+    
+    function _loadListItem (defOpts, itemIndex) {
+         debugger;
+         const dataObj = defOpts.dataObjects[itemIndex];    
+         if(dataObj == undefined) return null;
+         const listItemData = _renderListItem(dataObj, itemIndex, defOpts);
+      
+         listItemData.dataIndex = itemIndex;
+         if(defOpts.listMoveDirection === LIST_MOVE_DIRECTION_FORWARDS) {
+            defOpts.listHTMLElement.appendChild(listItemData.listItemHTML);
+         } else { 
+            /// TODO: What if there are no children in the LIST?
+            defOpts.listHTMLElement.insertBefore(listItemData.listItemHTML, defOpts.listHTMLElement.firstElementChild);
+         }
+         return listItemData;
+    };
+    
   
     function _createListItemElement (listItemTag, listItemClass, listItemData) {      
          const listItem = document.createElement(listItemTag);
@@ -280,50 +334,161 @@ loadPolyfills ();
         const list = this; 
         listItemData.isVisible = isVisible;
         const listItemHTML = listItemData.listItemHTML;
-      
+        debugger; 
         if(isVisible) {
           
          listItemData.visibleIndex = list.visibleItems.length;
          list.visibleItems.push(listItemData);   
           
-         if(listItemData.visibleIndex != undefined) // visibleIndex can be 0
-          listItemHTML.setAttribute(LIST_ITEM_VISIBLE_INDEX_ATTR, listItemData.visibleIndex);
-           
-        } else {
+         if(listItemData.visibleIndex != undefined) {// visibleIndex can be 0
+          listItemHTML.setAttribute(LIST_ITEM_VISIBLE_INDEX_ATTR, listItemData.visibleIndex);        
+         }
+        } else if(listItemData.visibleIndex != undefined) {
           list.visibleItems.splice(listItemData.visibleIndex, 1);
+          _adjustListItemsVisibleIndex(list);
           delete listItemData.visibleIndex;
           listItemHTML.removeAttribute(LIST_ITEM_VISIBLE_INDEX_ATTR);
         }
-        
+      
         listItemHTML.setAttribute(LIST_ITEM_VISIBLE_ATTR, listItemData.isVisible);
     };
   
+    /**
+    * Should be called after some changes have been made in vivisbleItems array (e.g. after removal)
+    */
+    function _adjustListItemsVisibleIndex (list) {
+       debugger;
+       list.visibleItems.forEach(function (listItem, i) {
+         listItem.visibleIndex = i;
+         listItem.listItemHTML.setAttribute(LIST_ITEM_VISIBLE_INDEX_ATTR, listItem.visibleIndex);
+       });
+    };
+  
+  
     function _handleListItemsIntersection (entries, observerObj) {
+      const defOpts = this;
       entries.forEach(function(entry, i) {
         /*TODO: 
         1. Determine when element is gone above the list's upper bound and when it's gone below the list's bottom bound.
         2. Determine when there is more than 2 listItems above the list's upper bound, the third one should be deleted.
         3. Determine when there is only 1 listItem below the list's bottom bound, the next list item should be loaded and appended to the list
         4. Check whether we can/should use rootMargin property of the IntersectionObserver.
-        */
+        */ 
         const currentListItem = entry.target;
+        debugger;
         if(entry.isIntersecting) {
-          debugger;
+  
           if(0 < entry.intersectionRatio && entry.intersectionRatio < 1.0) {
             const listItemIndex = currentListItem.getAttribute("data-index");
             const listItemData = getListItemData(listItemIndex);
             _toggleListItemVisibility(listItemData, true);
-          }
-        } else {
+          }  
+        } else if(entry.rootBounds.height > 0) {
           debugger;
-          const listItemIndex = currentListItem.getAttribute("data-index");
+          let listItemIndex = parseInt(currentListItem.getAttribute("data-index"));
           const listItemData = getListItemData(listItemIndex);
           _toggleListItemVisibility(listItemData, false);
+          
+          /// if element is below the visible zone of the list
+          if(entry.boundingClientRect.bottom < entry.rootBounds.bottom) return;
+          
+          _adjustUnusedItems(listItemIndex, 2);
         }  
-
+ 
           
         ///observerObj.unobserve(img); /// instructs the IntersectionObserver to stop observing the specified target element
       });
+    };
+  
+  
+    function _toggleListMoveDirection () {
+      const defOpts = this;
+      defOpts.listMoveDirection = defOpts.listMoveDirection === LIST_MOVE_DIRECTION_FORWARDS ?
+        LIST_MOVE_DIRECTION_BACKWARDS : 
+        LIST_MOVE_DIRECTION_FORWARDS;
+      return defOpts.listMoveDirection;
+    };
+  
+  /**
+  * Tidy up unused listItems from the list, according to maximum permitted items amount
+  * @param {Number} startIndex - Index, of the list item, from which we should start count maximum permitted items amount before start the purge
+  * @param {Number} maxPermittedItems - Number of maximum permitted items to be leave untouched in list, all other item will be deleted
+  */
+  function _adjustUnusedItems (startIndex, maxPermittedItems) {
+    let nexListItemData = null;
+
+    while (maxPermittedItems-- > 0) {
+      startIndex += 1; 
+      nexListItemData = getListItemData(startIndex);
+    };   
+    
+    if(nexListItemData) {
+        removeListItem(startIndex);
+        /*defOpts.listItemsData.splice(startIndex, 1);
+        defOpts.listHTMLElement.removeChild(nexListItemData.listItemHTML);*/
+    };    
+
+  };
+  
+  /**
+  * Removes list item from the list data and from the DOM
+  * @param {Number} index - Index of the list item to remove
+  * @return {Object} - Deleted list item's data
+  */
+  function removeListItem (index) {
+    const defOpts = this;
+    /// NOTE: we don't remove list item from the visible items list, 
+    /// so if we want to remove visible list item we need to think how to handle it
+    /// (may be to call _toggleListItemVisibility first and then remove item)
+    const listItemData = getListItemData(index);
+    if(listItemData == undefined) return;
+    defOpts.listItemsData.splice(index, 1);
+    defOpts.listHTMLElement.removeChild(listItemData.listItemHTML);
+    return listItemData;
+  };
+  
+  
+    /**
+    * Moves list element to the specific position/offset on the X axes
+    * according to provided input value.
+    * @param {Number} distance - Distance/offset value to move list (can be negative)
+    */
+    function _moveList (distance, direction) {
+        const defOpts = this;
+        const list = defOpts.listHTMLElement;
+        const prevDistanceValue = _getListOffset();
+      
+        distance += prevDistanceValue;
+     
+        list.style.transform = "translate" + direction.toUpperCase() + "(" + distance + "px)";
+    };
+  
+    /**
+    * Retrieves current offset value for the provided list
+    * @return {Number} - Current offset for the provided list element, otherwise returns 0.
+    */
+    function _getListOffset () {
+     const list = this.listHTMLElement;
+     const matchedResult = list.style.transform.match(/-?\d+\.?\d*/); // gets number (with the sign) from the transform function with single numeric value
+     let offset = 0;
+     if(matchedResult) {
+       offset = matchedResult[0] * 1;
+     }
+     return offset;
+   };
+  
+  
+    function _getListItemDimension (defOpts) {
+      const listMoveAxle = defOpts.listMoveAxle;
+      const listItemElem = defOpts.listHTMLElement.firstElementChild;
+      const listItemStyle = window.getComputedStyle(listItemElem);
+      let listItemOffset = 0;
+      if(listMoveAxle === "y") {
+        listItemOffset = listItemElem.offsetHeight + parseFloat(listItemStyle.marginTop) + parseFloat(listItemStyle.marginBottom);
+      } else if(listMoveAxle === "x") {
+        listItemOffset = listItemElem.offsetWidth + parseFloat(listItemStyle.marginLeft) + parseFloat(listItemStyle.marginRight);
+      }
+      return listItemOffset;
     };
   
     /**
