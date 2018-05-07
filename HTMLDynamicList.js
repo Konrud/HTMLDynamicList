@@ -5,6 +5,7 @@ loadPolyfills ();
  /*
   TODO:
   1. Add method refresh() that will refresh list's data after deletion or some other action (e.g. get new data from server and display it)
+
  */
   
     
@@ -180,6 +181,7 @@ loadPolyfills ();
             }
          }
         
+
         currentSelectedItem = defOpts.listItemsData[selectedIndex];
         currentSelectedItem.isSelected = true;
         debugger;
